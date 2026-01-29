@@ -4,3 +4,5 @@ scikit-learn>=1.0.0
 matplotlib>=3.4.0
 alpaca-trade-api>=2.0.0
 pytz>=2021.3
+pillow>=8.0.0
+requests>=2.26.0
