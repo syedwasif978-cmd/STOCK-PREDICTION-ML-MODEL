@@ -106,18 +106,30 @@ class StockPredictionGUI:
         # ===== SEARCH SECTION =====
         self.create_search_section(main_container)
         
-        # ===== MAIN CONTENT (3 columns) =====
-        content_frame = ttk.Frame(main_container)
-        content_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        # ===== MAIN CONTENT (vertical layout) =====
+        # TOP: Chart (full width)
+        self.create_middle_panel(main_container)
         
-        # Left panel - Info and metrics
-        self.create_left_panel(content_frame)
+        # BOTTOM: 2-column layout (metrics left, prediction right)
+        bottom_frame = ttk.Frame(main_container)
+        bottom_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
         
-        # Middle panel - Visualization
-        self.create_middle_panel(content_frame)
+        # Left panel - Metrics
+        self.create_left_panel(bottom_frame)
         
-        # Right panel - Details and controls
-        self.create_right_panel(content_frame)
+        # Right panel - Prediction Details
+        self.create_right_panel(bottom_frame)
+
+        # Footer with action buttons to view full screens (keeps main layout uncluttered)
+        footer_frame = ttk.Frame(main_container)
+        footer_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        self.full_metrics_btn = ttk.Button(footer_frame, text='View Full Metrics', width=20,
+                                           command=self.open_metrics_window)
+        self.full_metrics_btn.pack(side=tk.RIGHT, padx=6)
+        self.full_details_btn = ttk.Button(footer_frame, text='View Full Details', width=20,
+                                           command=self.open_prediction_window)
+        self.full_details_btn.pack(side=tk.RIGHT)
         
     def create_header(self, parent):
         """Create application header."""
@@ -129,7 +141,7 @@ class StockPredictionGUI:
         title_label.pack(side=tk.LEFT)
         
         subtitle_label = ttk.Label(header_frame, 
-                                  text="Real-time market data • ML predictions • Live visualizations",
+                                  text="Real-time market data • ML Based Model",
                                   style='Subtitle.TLabel')
         subtitle_label.pack(side=tk.LEFT, padx=(20, 0))
         
@@ -140,7 +152,7 @@ class StockPredictionGUI:
         
         # Search input with label
         input_frame = ttk.Frame(search_frame)
-        input_frame.pack(fill=tk.X, pady=(0, 10))
+        input_frame.pack(fill=tk.X, pady=(0, 5))
         
         ttk.Label(input_frame, text="Enter Stock Symbol:").pack(side=tk.LEFT, padx=(0, 10))
         
@@ -161,7 +173,7 @@ class StockPredictionGUI:
         
         # Search suggestions (dropdown-style)
         suggestion_frame = ttk.Frame(search_frame)
-        suggestion_frame.pack(fill=tk.X)
+        suggestion_frame.pack(fill=tk.X, pady=(5, 0))
         
         ttk.Label(suggestion_frame, text="Popular stocks:").pack(side=tk.LEFT, padx=(0, 10))
         
@@ -170,23 +182,11 @@ class StockPredictionGUI:
             ttk.Button(suggestion_frame, text=stock, width=6,
                       command=lambda s=stock: self.quick_select_stock(s)).pack(side=tk.LEFT, padx=2)
         
-        # Suggestions listbox
-        self.suggestions_frame = ttk.Frame(search_frame)
-        self.suggestions_frame.pack(fill=tk.X, pady=(10, 0))
-        
-        # Label for suggestions
-        ttk.Label(self.suggestions_frame, text="Search Results:").pack(anchor=tk.W)
-        
-        # Suggestions listbox
-        self.suggestions_listbox = tk.Listbox(self.suggestions_frame, height=4, 
-                                             font=('Helvetica', 10))
-        self.suggestions_listbox.pack(fill=tk.X, pady=(5, 0))
-        self.suggestions_listbox.bind('<<ListboxSelect>>', self.on_suggestion_select)
-        
     def create_left_panel(self, parent):
         """Create left panel with metrics and info."""
         left_frame = ttk.LabelFrame(parent, text="Metrics & Information", padding=10)
-        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 5), min_width=250)
+        # Left column takes 50% of width
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
         
         # Stock symbol display
         self.symbol_display = ttk.Label(left_frame, text="Symbol: --", 
@@ -194,7 +194,7 @@ class StockPredictionGUI:
         self.symbol_display.pack(pady=10)
         
         # Metrics frame
-        self.metrics_text = scrolledtext.ScrolledText(left_frame, height=25, width=30,
+        self.metrics_text = scrolledtext.ScrolledText(left_frame, height=15, width=40,
                                                      font=('Courier', 9), wrap=tk.WORD)
         self.metrics_text.pack(fill=tk.BOTH, expand=True)
         
@@ -209,26 +209,39 @@ class StockPredictionGUI:
     def create_middle_panel(self, parent):
         """Create middle panel for visualization."""
         middle_frame = ttk.LabelFrame(parent, text="Price Prediction Chart", padding=5)
-        middle_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
+        middle_frame.pack(fill=tk.BOTH, expand=False, pady=(0, 10))
         
-        # Canvas for matplotlib figure
-        self.canvas_frame = ttk.Frame(middle_frame)
-        self.canvas_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Placeholder message
+        # Create a scrollable canvas area so wide figures can be panned horizontally
+        self.scroll_canvas = tk.Canvas(middle_frame, height=260, bg=self.root['bg'], highlightthickness=0)
+        self.scroll_canvas.pack(fill=tk.X, side=tk.TOP, expand=False)
+        h_scroll = ttk.Scrollbar(middle_frame, orient='horizontal', command=self.scroll_canvas.xview)
+        h_scroll.pack(fill=tk.X, side=tk.TOP)
+        self.scroll_canvas.configure(xscrollcommand=h_scroll.set)
+
+        # Frame inside the canvas where the matplotlib widget will be placed
+        self.canvas_frame = ttk.Frame(self.scroll_canvas)
+        self.canvas_window = self.scroll_canvas.create_window((0, 0), window=self.canvas_frame, anchor='nw')
+
+        # Update scrollregion when the inner frame changes size
+        def _on_frame_config(event):
+            self.scroll_canvas.configure(scrollregion=self.scroll_canvas.bbox('all'))
+        self.canvas_frame.bind('<Configure>', _on_frame_config)
+
+        # Initial placeholder message inside inner frame
         self.placeholder_label = ttk.Label(self.canvas_frame, 
                                           text="Select a stock to see prediction chart",
                                           foreground='#999')
-        self.placeholder_label.pack(expand=True)
+        self.placeholder_label.pack(expand=True, padx=20, pady=40)
         
     def create_right_panel(self, parent):
         """Create right panel with details and controls."""
         right_frame = ttk.LabelFrame(parent, text="Prediction Details", padding=10)
-        right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(5, 0), min_width=250)
-        
-        # Prediction display
-        self.prediction_text = scrolledtext.ScrolledText(right_frame, height=25, width=30,
-                                                        font=('Courier', 9), wrap=tk.WORD)
+        # Right column takes 50% of width
+        right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
+
+        # Prediction display: use ScrolledText with word wrapping for readability
+        self.prediction_text = scrolledtext.ScrolledText(right_frame, height=15, width=40,
+                                font=('Courier', 9), wrap=tk.WORD)
         self.prediction_text.pack(fill=tk.BOTH, expand=True)
         
         # Configure text tags
@@ -243,25 +256,12 @@ class StockPredictionGUI:
         
     def on_search_change(self, event):
         """
-        Handle search input changes - show suggestions.
+        Handle search input changes - placeholder for future use.
         
         Parameters:
             event: Tkinter event object
         """
-        search_term = self.search_entry.get().upper().strip()
-        
-        # Clear suggestions if empty
-        if not search_term:
-            self.suggestions_listbox.delete(0, tk.END)
-            return
-        
-        # Get matching stocks
-        suggestions = self.get_stock_suggestions(search_term)
-        
-        # Update listbox
-        self.suggestions_listbox.delete(0, tk.END)
-        for stock in suggestions[:10]:  # Show max 10 suggestions
-            self.suggestions_listbox.insert(tk.END, stock)
+        pass
     
     def get_stock_suggestions(self, search_term):
         """
@@ -310,21 +310,7 @@ class StockPredictionGUI:
         
         return matches
     
-    def on_suggestion_select(self, event):
-        """
-        Handle suggestion selection from listbox.
-        
-        Parameters:
-            event: Tkinter event object
-        """
-        selection = self.suggestions_listbox.curselection()
-        if selection:
-            selected_text = self.suggestions_listbox.get(selection[0])
-            symbol = selected_text.split(' - ')[0]  # Extract symbol
-            self.search_entry.delete(0, tk.END)
-            self.search_entry.insert(0, symbol)
-            self.fetch_and_predict()
-    
+
     def quick_select_stock(self, symbol):
         """
         Quickly select a popular stock.
@@ -369,10 +355,20 @@ class StockPredictionGUI:
             # Fetch data from Alpaca API
             print(f"Fetching data for {symbol}...")
             df = fetch_stock_data(symbol, days=365*5)
-            
+
+            # Inform the user if the returned DataFrame is demo data
+            is_demo = False
+            try:
+                is_demo = bool(df.attrs.get('demo', False))
+            except Exception:
+                is_demo = False
+
+            if is_demo:
+                self.root.after(0, lambda: messagebox.showinfo(""))
+
             if df is None or len(df) < 100:
                 raise ValueError(f"Insufficient data for {symbol}")
-            
+
             print(f"Received {len(df)} rows of data")
             
             # Update UI - engineering features
@@ -383,9 +379,23 @@ class StockPredictionGUI:
             from indicators.rsi import calculate_rsi
             from indicators.volatility import calculate_volatility
             
-            df['SMA_20'] = calculate_multiple_sma(df, periods=[20], column='Close')[0]
-            df['SMA_50'] = calculate_multiple_sma(df, periods=[50], column='Close')[0]
-            df['SMA_200'] = calculate_multiple_sma(df, periods=[200], column='Close')[0]
+            # Calculate multiple SMAs in one call and assign by column names
+            sma_all = calculate_multiple_sma(df, periods=[20, 50, 200], column='Close')
+            if 'SMA_20' in sma_all.columns:
+                df['SMA_20'] = sma_all['SMA_20']
+            else:
+                df['SMA_20'] = pd.Series(index=df.index, dtype=float)
+
+            if 'SMA_50' in sma_all.columns:
+                df['SMA_50'] = sma_all['SMA_50']
+            else:
+                df['SMA_50'] = pd.Series(index=df.index, dtype=float)
+
+            if 'SMA_200' in sma_all.columns:
+                df['SMA_200'] = sma_all['SMA_200']
+            else:
+                df['SMA_200'] = pd.Series(index=df.index, dtype=float)
+
             df['RSI'] = calculate_rsi(df, period=14, column='Close')
             df['Volatility'] = calculate_volatility(df, period=20, column='Close')
             df['Volume_MA'] = df['Volume'].rolling(window=20).mean()
@@ -435,8 +445,9 @@ class StockPredictionGUI:
             self.root.after(0, self._update_status, "Creating visualization...", "orange")
             
             # Create visualization
+            # y_test is a numpy array returned by prepare_data; don't call .values on it
             self.root.after(0, self._create_visualization, 
-                          y_test.values, y_pred, symbol, 
+                          y_test, y_pred, symbol, 
                           X_test, y_test, dates)
             
             # Update displays
@@ -446,8 +457,21 @@ class StockPredictionGUI:
             self.root.after(0, self._update_status, f"✓ Ready ({symbol})", "green")
             
         except Exception as e:
-            error_msg = f"Error: {str(e)}\n\n{traceback.format_exc()}"
-            self.root.after(0, lambda: messagebox.showerror("Processing Error", error_msg))
+            msg_str = str(e)
+            # User-friendly message for Alpaca SIP subscription errors
+            if 'subscription does not permit' in msg_str.lower() or 'sip' in msg_str.lower():
+                friendly = (
+                    "Alpaca subscription does not permit querying recent SIP data.\n\n"
+                    "The application tried to fetch real-time SIP data but your plan does not allow it.\n"
+                    "Options:\n"
+                    "  • Install the optional fallback package: `pip install yfinance`\n"
+                    "  • Or upgrade your Alpaca data subscription to allow SIP queries.\n\n"
+                    "If you install `yfinance`, re-run the fetch and the app will attempt to use it as a fallback."
+                )
+                self.root.after(0, lambda: messagebox.showerror("Data Access Error", friendly))
+            else:
+                error_msg = f"Error: {msg_str}\n\n{traceback.format_exc()}"
+                self.root.after(0, lambda: messagebox.showerror("Processing Error", error_msg))
             self.root.after(0, self._update_status, "Error occurred", "red")
             
         finally:
@@ -466,40 +490,58 @@ class StockPredictionGUI:
             for widget in self.canvas_frame.winfo_children():
                 widget.destroy()
             
-            # Create figure with subplots
-            fig = Figure(figsize=(10, 6), dpi=100)
+            # Create figure with a short height (shorter graph) so it fits the area; width can be larger for horizontal pan
+            fig = Figure(figsize=(18, 2.8), dpi=90)
+            fig.patch.set_facecolor('#ffffff')
             
             # Main prediction plot
             ax1 = fig.add_subplot(211)
-            ax1.plot(actual, label='Actual Returns', color='#1f77b4', linewidth=2)
-            ax1.plot(predicted, label='Predicted Returns', color='#ff7f0e', 
-                    linestyle='--', linewidth=2)
-            ax1.set_title(f'{symbol} - Next Day Return Prediction', fontsize=12, fontweight='bold')
-            ax1.set_xlabel('Test Sample')
-            ax1.set_ylabel('Return (%)')
-            ax1.legend(loc='upper left')
-            ax1.grid(True, alpha=0.3)
+            ax1.plot(actual, label='Actual Returns', color='#0056b3', linewidth=2.5, marker='o', markersize=3, alpha=0.9)
+            ax1.plot(predicted, label='Predicted Returns', color='#ff6b35', 
+                    linestyle='--', linewidth=2.5, marker='s', markersize=3, alpha=0.9)
+            ax1.set_title(f'{symbol} - Next Day Return Prediction', fontsize=11, fontweight='bold', pad=6)
+            ax1.set_xlabel('Trading Days', fontsize=8, fontweight='bold')
+            ax1.set_ylabel('Return (%)', fontsize=8, fontweight='bold')
+            ax1.legend(loc='upper left', fontsize=7, framealpha=0.96, edgecolor='black')
+            ax1.grid(True, alpha=0.22, linestyle='-', linewidth=0.5)
+            ax1.set_facecolor('#fafafa')
+            ax1.tick_params(labelsize=7)
             
             # Error distribution plot
             errors = actual - predicted
             ax2 = fig.add_subplot(212)
-            ax2.hist(errors, bins=30, color='#2ca02c', alpha=0.7, edgecolor='black')
-            ax2.axvline(errors.mean(), color='red', linestyle='--', linewidth=2, label=f'Mean Error: {errors.mean():.4f}')
-            ax2.set_title('Prediction Error Distribution', fontsize=12, fontweight='bold')
-            ax2.set_xlabel('Error (%)')
-            ax2.set_ylabel('Frequency')
-            ax2.legend()
-            ax2.grid(True, alpha=0.3, axis='y')
+            n, bins, patches = ax2.hist(errors, bins=18, color='#28a745', alpha=0.75, edgecolor='#1a5c2a', linewidth=0.9)
+            ax2.axvline(errors.mean(), color='#dc3545', linestyle='--', linewidth=2.2, label=f'Mean Error: {errors.mean():.5f}')
+            ax2.set_title('Error Distribution', fontsize=12, fontweight='bold', pad=10)
+            ax2.set_xlabel('Error (Return %)', fontsize=9, fontweight='bold')
+            ax2.set_ylabel('Frequency', fontsize=9, fontweight='bold')
+            ax2.legend(loc='upper right', fontsize=8, framealpha=0.96, edgecolor='black')
+            ax2.grid(True, alpha=0.25, axis='y', linestyle='-', linewidth=0.6)
+            ax2.set_facecolor('#fafafa')
+            ax2.tick_params(labelsize=8)
             
-            fig.tight_layout()
+            # Adjust layout with balanced spacing
+            fig.subplots_adjust(top=0.92, bottom=0.14, left=0.11, right=0.96, hspace=0.38)
             
-            # Embed in Tkinter
+            # Embed in Tkinter inside the scrollable canvas_frame
             canvas = FigureCanvasTkAgg(fig, master=self.canvas_frame)
             canvas.draw()
-            canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-            
+
+            # Place the figure widget inside the inner frame (so it can be scrolled horizontally)
+            fig_widget = canvas.get_tk_widget()
+            fig_widget.pack(side=tk.LEFT, anchor='nw')
+
+            # Ensure the scroll region is updated to include the new figure size
+            try:
+                self.scroll_canvas.configure(scrollregion=self.scroll_canvas.bbox('all'))
+            except Exception:
+                pass
+
         except Exception as e:
             print(f"Visualization error: {e}")
+
+
+
     
     def _update_all_displays(self, symbol, mse, rmse, mae, r2):
         """Update all display panels."""
@@ -611,6 +653,28 @@ advisor before trading.
         self.prediction_text.delete(1.0, tk.END)
         self.prediction_text.insert(tk.END, text)
         self.prediction_text.config(state=tk.DISABLED)
+
+    def open_metrics_window(self):
+        """Open a full window showing the metrics text."""
+        win = tk.Toplevel(self.root)
+        win.title("Full Metrics")
+        win.geometry("700x600")
+        txt = scrolledtext.ScrolledText(win, font=('Courier', 10), wrap=tk.WORD)
+        txt.pack(fill=tk.BOTH, expand=True)
+        txt.insert(tk.END, self.metrics_text.get(1.0, tk.END))
+        txt.config(state=tk.DISABLED)
+        ttk.Button(win, text="Back", command=win.destroy).pack(pady=6)
+
+    def open_prediction_window(self):
+        """Open a full window showing the prediction details."""
+        win = tk.Toplevel(self.root)
+        win.title("Full Prediction Details")
+        win.geometry("700x600")
+        txt = scrolledtext.ScrolledText(win, font=('Courier', 10), wrap=tk.WORD)
+        txt.pack(fill=tk.BOTH, expand=True)
+        txt.insert(tk.END, self.prediction_text.get(1.0, tk.END))
+        txt.config(state=tk.DISABLED)
+        ttk.Button(win, text="Back", command=win.destroy).pack(pady=6)
 
 
 def main():

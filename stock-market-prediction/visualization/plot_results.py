@@ -428,7 +428,7 @@ def create_summary_report(
     
     report = f"""
 {'='*70}
-📊 MODEL PERFORMANCE REPORT
+MODEL PERFORMANCE REPORT
 {'='*70}
 
 Stock Symbol: {stock_symbol}
@@ -496,7 +496,7 @@ Always verify with professional financial advisors.
     # Save if path provided
     if save_path:
         os.makedirs(os.path.dirname(save_path) if os.path.dirname(save_path) else '.', exist_ok=True)
-        with open(save_path, 'w') as f:
+        with open(save_path, 'w', encoding='utf-8') as f:
             f.write(report)
         print(f"[SUCCESS] Report saved to {save_path}")
     

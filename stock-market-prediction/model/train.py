@@ -381,12 +381,12 @@ def train_and_evaluate_model(X_train, X_test, y_train, y_test, feature_names):
     print(f"       - Test R²:     {test_metrics['r2']:.4f}")
     
     if test_metrics['r2'] < 0:
-        print(f"\n       ⚠️  Warning: Negative R² indicates poor model performance")
+        print(f"\n       [Warning] Negative R² indicates poor model performance")
         print(f"           The model performs worse than predicting the mean.")
     elif test_metrics['r2'] < 0.1:
-        print(f"\n       ℹ️  Info: Low R² is typical for stock market predictions")
+        print(f"\n       [Info] Low R² is typical for stock market predictions")
         print(f"           Stock returns are inherently noisy and unpredictable.")
     else:
-        print(f"\n       ✓ Good: R² indicates the model explains variance in returns")
+        print(f"\n       [Good] R² indicates the model explains variance in returns")
     
     return model

@@ -1,0 +1,64 @@
+
+======================================================================
+MODEL PERFORMANCE REPORT
+======================================================================
+
+Stock Symbol: SYNTH
+Generated: 2026-01-30 15:50:45
+
+======================================================================
+EVALUATION METRICS
+======================================================================
+
+Mean Squared Error (MSE):        0.00012136
+Root Mean Squared Error (RMSE):  0.01101643
+Mean Absolute Error (MAE):       0.00822218
+R-squared (R²):                  0.686632
+
+Test Set Size: 224 samples
+
+======================================================================
+INTERPRETATION GUIDE
+======================================================================
+
+R² Score:
+  - Range: 0 to 1 (negative values indicate worse than mean)
+  - Your Score: 0.6866
+  - Interpretation: Model explains 68.66% of variance
+  
+  - R² < 0.00: Poor (worse than predicting mean)
+  - 0.00 < R² < 0.10: Weak (typical for stock returns)
+  - 0.10 < R² < 0.30: Moderate (good for market prediction)
+  - 0.30 < R² < 0.50: Strong
+  - R² > 0.50: Excellent (rare for stock returns)
+
+RMSE:
+  - Average absolute prediction error in return units
+  - Your RMSE: 0.011016 (1.1016%)
+  
+MAE:
+  - Mean of absolute errors (less sensitive to outliers)
+  - Your MAE: 0.008222 (0.8222%)
+
+======================================================================
+TOP IMPORTANT FEATURES
+======================================================================
+
+ 1. Volume_MA           : 0.213313 (21.33%)
+ 2. RSI_14              : 0.207052 (20.71%)
+ 3. Volatility          : 0.196641 (19.66%)
+ 4. SMA_20              : 0.177642 (17.76%)
+ 5. SMA_200             : 0.113683 (11.37%)
+ 6. SMA_50              : 0.091667 (9.17%)
+
+======================================================================
+DISCLAIMER
+======================================================================
+
+This analysis is for EDUCATIONAL purposes only.
+Not financial advice. Past performance ≠ future results.
+
+Always verify with professional financial advisors.
+
+======================================================================
+    

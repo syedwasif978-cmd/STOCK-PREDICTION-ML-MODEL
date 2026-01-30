@@ -1,5 +1,4 @@
 
-
 import sys
 import os
 from datetime import datetime
@@ -20,29 +19,17 @@ from visualization.plot_results import (
     plot_actual_vs_predicted,
     plot_returns_comparison,
     plot_residuals,
+    
     create_summary_report
 )
 
 
-def main():
+def cli_main():
     """
-    Main entry point for the stock market analysis system.
-    
-    Workflow:
-        1. Display welcome message
-        2. Get stock symbol from user
-        3. Fetch historical data from Alpaca API
-        4. Prepare data (features, split, scale)
-        5. Train Random Forest model
-        6. Generate predictions
-        7. Create visualizations
-        8. Display results and metrics
-    
-    Error Handling:
-        - Catches invalid symbols
-        - Handles API connection errors
-        - Validates data availability
-        - Reports helpful error messages
+    CLI entry point for the stock market analysis system.
+
+    This function runs the interactive terminal workflow (prompts via input()).
+    Use the `--cli` flag when running the script if you want the terminal interface.
     """
     
     print("\n" + "="*70)
@@ -296,4 +283,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Default: launch GUI. Use '--cli' or 'cli' to run the terminal interface.
+    try:
+        if len(sys.argv) > 1 and sys.argv[1].lower() in ("--cli", "cli"):
+            cli_main()
+        else:
+            from gui_app import main as gui_main
+            gui_main()
+    except Exception as e:
+        # If GUI fails (missing deps, headless environment), fall back to CLI
+        print(f"[WARN] GUI launch failed ({e}). Falling back to CLI interface.")
+        cli_main()
