@@ -828,7 +828,7 @@ USER INPUT (Stock Symbol)
 
 This comprehensive architecture documentation provides visual representations of:
 - **Actor Use Cases** - What users and systems do
-- **Swimlane Diagrams** - Workflow across different layers
+- **Swimlane Diagrams** - Workflow across different layers.
 - **Process Flow** - Step-by-step execution
 - **System Architecture** - Layered design
 - **Data Flow** - How data transforms through system
